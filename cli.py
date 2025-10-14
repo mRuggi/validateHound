@@ -4,8 +4,10 @@
 validateHound CLI - integrated with core.loader (PR2)
 """
 
-from pathlib import Path
+import json
 import typer
+
+from pathlib import Path
 from rich.console import Console
 from rich.table import Table
 from rich.panel import Panel
@@ -106,12 +108,12 @@ def validate(
     console.print(f"[red]Total invalid objects:[/red] {total_invalid}")
 
     if total_invalid > 0:
-        console.print("\n[bold yellow]Errors summary (max 5 per file):[/bold yellow]")
+        console.print("\n[bold yellow]Errors summary (max 1 per file):[/bold yellow]")
         for fname, res in results.items():
             if res.errors:
                 console.print(f"\n[red]{fname}[/red]:")
-                for msg in res.errors[:5]:
-                    console.print(f"  - {msg[:180]}...")
+                for msg in res.errors[:1]:
+                    console.print(f"  - {msg}")
 
 
 @app.command()
@@ -167,7 +169,8 @@ def inspect(path: Path = typer.Argument(..., help="Cartella o .zip da ispezionar
     console.print(f"Showing first [bold]{min(limit, len(arr))}[/bold] items of [green]{file}[/green] (total: {len(arr)})\n")
     for i, item in enumerate(arr[:limit]):
         console.rule(f"[{i}] {file}")
-        console.print(Syntax(str(item), "json", theme="monokai", line_numbers=False))
+        pretty = json.dumps(item, indent=2, ensure_ascii=False, sort_keys=True)
+        console.print(Syntax(pretty, "json", theme="monokai", line_numbers=False))
 
 if __name__ == "__main__":
     app()
