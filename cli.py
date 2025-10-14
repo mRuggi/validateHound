@@ -12,7 +12,7 @@ from rich.panel import Panel
 from rich.syntax import Syntax
 from typing import Optional
 
-from validatehound.core import loader
+from validatehound.core import loader,validator
 
 app = typer.Typer(help="validateHound — validator & light viewer for RustHound-CE outputs")
 console = Console()
@@ -71,15 +71,48 @@ def summary(path: Path = typer.Argument(..., help="Cartella o .zip generato da R
     console.print(t)
 
 @app.command()
-def validate(path: Path = typer.Argument(..., help="Cartella o .zip da validare (placeholder)"),
-             strict: bool = typer.Option(False, "--strict", "-s", help="Abilita validazione stricter (future)")):
+def validate(
+    path: Path = typer.Argument(..., help="Cartella o .zip da validare"),
+    strict: bool = typer.Option(False, "--strict", "-s", help="Abilita validazione stricter (future)"),
+):
     """
-    Placeholder per la validazione. In PR3 verrà collegato al validator.
+    Esegue una validazione di base sugli output RustHound-CE (schema-level).
     """
+
     console.rule("[bold blue]validateHound — validate")
     console.print(f"Input: {_path_help(path)}")
-    console.print(f"Opzione strict: {strict}")
-    console.print("[yellow]STATUS[/yellow]: validazione non ancora implementata; PR3 aggiungerà schemi e controlli.")
+
+    try:
+        data = loader.load(path)
+    except loader.LoaderError as e:
+        console.print(f"[red]Loader error:[/red] {e}")
+        raise typer.Exit(code=2)
+
+    results = validator.validate_data(data)
+
+    t = Table(title="Validation results", show_header=True, header_style="bold magenta")
+    t.add_column("Filename", style="cyan")
+    t.add_column("Valid", justify="right")
+    t.add_column("Invalid", justify="right")
+
+    total_valid = total_invalid = 0
+    for fname, res in results.items():
+        t.add_row(fname, str(res.valid_count), str(res.invalid_count))
+        total_valid += res.valid_count
+        total_invalid += res.invalid_count
+
+    console.print(t)
+    console.print(f"[green]Total valid objects:[/green] {total_valid}")
+    console.print(f"[red]Total invalid objects:[/red] {total_invalid}")
+
+    if total_invalid > 0:
+        console.print("\n[bold yellow]Errors summary (max 5 per file):[/bold yellow]")
+        for fname, res in results.items():
+            if res.errors:
+                console.print(f"\n[red]{fname}[/red]:")
+                for msg in res.errors[:5]:
+                    console.print(f"  - {msg[:180]}...")
+
 
 @app.command()
 def inspect(path: Path = typer.Argument(..., help="Cartella o .zip da ispezionare"),
