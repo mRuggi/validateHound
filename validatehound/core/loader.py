@@ -32,18 +32,26 @@ def _iter_json_files_in_dir(path: Path) -> Iterable[Path]:
 def _read_json_file(path: Path) -> Any:
     try:
         with path.open("r", encoding="utf-8") as fh:
-            return json.load(fh)
+            data = json.load(fh)
     except Exception as e:
         raise JSONParseError(str(path), e)
 
+    # RustHound CE normalization
+    if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
+        data = data["data"]
+
+    return data
 
 def _read_json_bytes(name: str, bts: bytes) -> Any:
     try:
-        # decode as utf-8 then parse
-        return json.loads(bts.decode("utf-8"))
+        data = json.loads(bts.decode("utf-8"))
     except Exception as e:
         raise JSONParseError(name, e)
 
+    if isinstance(data, dict) and "data" in data and isinstance(data["data"], list):
+        data = data["data"]
+
+    return data
 
 def load_from_dir(path: Path) -> Dict[str, Any]:
     """
