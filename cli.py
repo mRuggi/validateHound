@@ -50,12 +50,20 @@ def summary(path: Path = typer.Argument(..., help="Cartella o .zip generato da R
     t.add_column("Count / Size", justify="right")
     for name in files:
         val = data[name]
-        if isinstance(val, list):
+        if isinstance(val, dict) and "data" in val:
+            inner = val["data"]
+            if isinstance(inner, list):
+                typ = "array (data)"
+                cnt = str(len(inner))
+            else:
+                typ = "object"
+                cnt = "-"
+        elif isinstance(val, list):
             typ = "array"
             cnt = str(len(val))
         elif isinstance(val, dict):
             typ = "object"
-            cnt = str(len(val.keys()))
+            cnt = str(len(val))
         else:
             typ = type(val).__name__
             cnt = "-"
