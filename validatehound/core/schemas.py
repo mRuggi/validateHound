@@ -39,6 +39,39 @@ class User(BaseModel):
             return ContainedBy(**v)
         return v
 
+# GROUP SCHEMA RUSTHOUND-CE
+
+class GroupProperties(BaseModel):
+    name: str
+    distinguishedname: Optional[str] = None
+    domain: Optional[str] = None
+    domainsid: Optional[str] = None
+    isaclprotected: Optional[bool] = False
+    highvalue: Optional[bool] = False
+    samaccountname: Optional[str] = None
+    description: Optional[str] = None
+    whencreated: Optional[int] = None
+    admincount: Optional[bool] = False
+
+class GroupMember(BaseModel):
+    ObjectIdentifier: str
+    ObjectType: str
+
+class Group(BaseModel):
+    ObjectId: str = Field(..., alias="ObjectIdentifier")
+    Properties: GroupProperties
+    Members: Optional[List[GroupMember]] = []
+    Aces: Optional[List[Ace]] = []
+    ContainedBy: Optional[ContainedBy]
+    IsDeleted: Optional[bool] = False
+    IsACLProtected: Optional[bool] = False
+
+    @field_validator("ContainedBy", mode="before")
+    def parse_containedby(cls, v):
+        if isinstance(v, dict):
+            return ContainedBy(**v)
+        return v
+
 # === Schema registry ===
 SCHEMA_MAP = {
     #"aiacas.json": Aiacas,  
@@ -48,7 +81,7 @@ SCHEMA_MAP = {
     #"domains.json": Domain,  
     #"enterprisecas.json": EnterpriseCA,  
     #"gpos.json": GPO,  
-    #"groups.json": Group, 
+    "groups.json": Group, 
     #"issuancepolicies.json": IssuancePolicy,  
     #"ntauthstores.json": NTAuthStore,  
     #"ous.json": OU,  
